@@ -99,11 +99,19 @@ final class TranscoderTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: out.path), ["intermediate.mp4"])
     }
 
-    /// The rate the server wants: about 50 Mbit/s of video on a 4K source with motion.
+    /// The intermediate's rate from the source's own frame rate: 50 Mbit/s at 25 fps.
     func testRateIsTheIntermediates() async throws {
         let result = try await Transcoder(source: fixture("prores-proxy-5k.mov"), output: out.appendingPathComponent("intermediate.mp4")).run { _ in }
         XCTAssertNil(result.plan.peakBitRate)
         XCTAssertEqual(result.plan.averageBitRate, 50_000_000)
+    }
+
+    /// A 59.94 fps source gets 70 Mbit/s, read from the track's nominal frame rate.
+    func testHighFrameRateGetsTheHigherRate() async throws {
+        let result = try await Transcoder(source: fixture("prores-proxy-5994.mov"), output: out.appendingPathComponent("intermediate.mp4")).run { _ in }
+        XCTAssertEqual(result.plan.frameRate, 59.94, accuracy: 0.01)
+        XCTAssertNil(result.plan.peakBitRate)
+        XCTAssertEqual(result.plan.averageBitRate, 70_000_000)
     }
 
     func testNotAVideo() async throws {

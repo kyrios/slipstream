@@ -5,7 +5,7 @@ them on its own server with [encode-queue](https://github.com/kyrios/encode-queu
 the menu bar and does two things:
 
 - **ProRes in the browser.** A ProRes file dropped into the Funkhaus in Safari is encoded on
-  this Mac into an HEVC intermediate at 50 Mbit/s before the page uploads it
+  this Mac into an HEVC intermediate (50 Mbit/s, 70 above 30 fps) before the page uploads it
   ([docs/encoding.md](docs/encoding.md)). Its Safari extension carries the file from the page to
   the app and the result back ([docs/extension-protocol.md](docs/extension-protocol.md)).
 - **Jobs from the queue.** Once paired, it runs Slipstream's core, the same worker that runs on
@@ -102,7 +102,7 @@ core/                    Slipstream's core, the worker on every OS (Go, its own 
 
 | Page | Read it for |
 |---|---|
-| [docs/encoding.md](docs/encoding.md) | The intermediate: what comes out, why 50 Mbit/s, the measurements |
+| [docs/encoding.md](docs/encoding.md) | The intermediate: what comes out, why 50 and 70 Mbit/s, the measurements |
 | [docs/funkhaus-api.md](docs/funkhaus-api.md) | What a Funkhaus offers Slipstream: the well-known file, the page's messages, pairing |
 | [docs/extension-protocol.md](docs/extension-protocol.md) | The messages between the Funkhaus, the extension and the app |
 | [docs/worker.md](docs/worker.md) | How the app runs the queue's worker, and pairing |

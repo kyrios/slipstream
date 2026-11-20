@@ -135,8 +135,9 @@ public actor ProResJobs {
             .volumeAvailableCapacityForImportantUsage
     }
 
-    /// Room a source of `size` bytes needs: the copy, the intermediate (at 50 Mbit/s an eighth
-    /// of ProRes 422 at its lightest is generous), and 1 GiB to spare.
+    /// Room a source of `size` bytes needs: the copy, the intermediate, and 1 GiB to spare. An
+    /// eighth of the source holds the intermediate of 4K ProRes 422 at its lightest for each rate:
+    /// 50 Mbit/s against 471 at 24 fps, 70 against 943 at 48 fps (Apple's ProRes white paper).
     static func roomNeeded(_ size: Int64) -> Int64 { size + size / 8 + 1 << 30 }
 
     /// The menu bar's view of the jobs; called on every change, progress included.

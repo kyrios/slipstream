@@ -22,17 +22,31 @@ final class PlanTests: XCTestCase {
         }
     }
 
-    /// ADR-0007 §8: 50 Mbit/s for every size and frame rate, an average alone, no peak.
-    func testIntermediateRate() {
-        for (w, h, fps) in [(3840, 2160, 25.0), (1920, 1080, 50), (5120, 2880, 24), (720, 1280, 30)] {
+    /// 50 Mbit/s up to 30 fps for every size (ADR-0007 §8), an average alone, no peak.
+    func testIntermediateRateUpTo30fps() {
+        for (w, h, fps) in [(3840, 2160, 25.0), (3840, 2160, 29.97), (3840, 2160, 30), (5120, 2880, 24),
+                            (1920, 1080, 23.976), (720, 1280, 30)] {
             let plan = Plan.make(width: w, height: h, frameRate: fps)
-            XCTAssertEqual(plan.averageBitRate, 50_000_000, "\(w)x\(h)")
+            XCTAssertEqual(plan.averageBitRate, 50_000_000, "\(w)x\(h) at \(fps)")
             XCTAssertNil(plan.peakBitRate)
         }
     }
 
+    /// 70 Mbit/s above 30 fps, the top of YouTube's 53 to 68 for 2160p at 48 to 60 fps cleared.
+    func testIntermediateRateAbove30fps() {
+        for (w, h, fps) in [(3840, 2160, 59.94), (3840, 2160, 60.0), (3840, 2160, 50), (1920, 1080, 48),
+                            (2160, 3840, 59.94)] {
+            let plan = Plan.make(width: w, height: h, frameRate: fps)
+            XCTAssertEqual(plan.averageBitRate, 70_000_000, "\(w)x\(h) at \(fps)")
+            XCTAssertNil(plan.peakBitRate)
+        }
+    }
+
+    /// A source without a frame rate counts as 25 fps, so it gets the lower rate.
     func testMissingFrameRateCountsAs25() {
-        XCTAssertEqual(Plan.make(width: 3840, height: 2160, frameRate: 0).frameRate, 25)
+        let plan = Plan.make(width: 3840, height: 2160, frameRate: 0)
+        XCTAssertEqual(plan.frameRate, 25)
+        XCTAssertEqual(plan.averageBitRate, 50_000_000)
     }
 
     /// The compression settings carry a peak only when the plan has one (the CLI's --peak).

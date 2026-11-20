@@ -17,7 +17,7 @@ Open work, most important first. Delete an item when it is done.
   intermediate: make it as before, export it as a `.p12` without a password, and replace the
   secret `DEVELOPER_ID_P12_BASE64` ([release.md](release.md)).
 - **The first real ProRes export through `bin/rungs.zsh`**: if the 4K rung
-  from the intermediate loses more than 1 VMAF point at 50 Mbit/s, raise the rate in
+  from the intermediate loses more than 1 VMAF point at 50 Mbit/s, raise the rate up to 30 fps in
   [encoding.md](encoding.md) and `Plan.swift`. Also the encode time on a plain M2.
 - **Look at the menu once**: the icon's states, the pause, the log window and About need a person
   looking at the screen.

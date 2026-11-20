@@ -1,4 +1,5 @@
 import AVFoundation
+import DropCore
 @testable import HelperCore
 import XCTest
 
@@ -288,6 +289,18 @@ final class LoopbackTests: XCTestCase {
         }
         let small = try await jobs.open(id: "small", name: "a.mov", size: 1 << 30, lastModified: nil)
         XCTAssertEqual(small.phase, .receiving)
+    }
+
+    /// The room asked for at open holds the copy and its intermediate at either rate: ten
+    /// minutes of 4K ProRes 422 at 23.976 fps (471 Mbit/s) and at 48 fps (943 Mbit/s).
+    func testRoomHoldsTheIntermediateAtEitherRate() {
+        for (sourceRate, fps) in [(471_000_000, 23.976), (943_000_000, 48.0)] {
+            let seconds: Int64 = 600
+            let size = Int64(sourceRate) / 8 * seconds
+            let rate = Int64(Plan.averageBitRate(frameRate: fps) + EncodePlan.audioBitRate)
+            let intermediate = rate / 8 * seconds
+            XCTAssertGreaterThanOrEqual(ProResJobs.roomNeeded(size), size + intermediate + (1 << 30), "\(fps) fps")
+        }
     }
 
     /// The real encode behind the store: a ProRes fixture becomes a checked hvc1 intermediate.

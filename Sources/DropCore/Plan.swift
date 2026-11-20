@@ -26,11 +26,25 @@ public enum Plan {
     /// size; a larger one is scaled into it. Portrait turns the box.
     public static let box = (width: 3840, height: 2160)
 
-    /// The intermediate's rate (ADR-0007 §8): the 4K rung made from it loses at most 1 VMAF
-    /// point (`vmaf_4k_v0.6.1`) against the rung made from the ProRes. 50 Mbit/s lost 0.8 on the
-    /// alpaca clip; the first real export decides (bin/rungs.zsh). One rate for every
-    /// size: the bits only travel to the server, and VideoToolbox takes the same time at any rate.
-    public static let averageBitRate = 50_000_000
+    /// The intermediate's rate up to 30 fps (ADR-0007 §8): the 4K rung made from it loses at most
+    /// 1 VMAF point (`vmaf_4k_v0.6.1`) against the rung made from the ProRes. 50 Mbit/s lost 0.8
+    /// on the alpaca clip; the first real export decides (bin/rungs.zsh). One rate for every
+    /// size: VideoToolbox takes the same time at any rate.
+    public static let standardBitRate = 50_000_000
+
+    /// The rate above 30 fps. The intermediate is also the master Funkhaus sends to YouTube,
+    /// which recommends 53 to 68 Mbit/s for SDR 2160p at 48 to 60 fps (35 to 45 up to 30 fps);
+    /// 70 clears the top of that range.
+    public static let highFrameRateBitRate = 70_000_000
+
+    /// Above this the source counts as high frame rate: 48, 50, 59.94 and 60 fps are above it,
+    /// 29.97 and 30 below, also when a track's nominal rate reads a little over 30.
+    public static let highFrameRate = 30.5
+
+    /// The average rate for a source of `frameRate` frames per second.
+    public static func averageBitRate(frameRate: Double) -> Int {
+        frameRate > highFrameRate ? highFrameRateBitRate : standardBitRate
+    }
 
     /// The size the server would make its top rung: kept aspect, even sides, never upscaled.
     public static func fit(width: Int, height: Int) -> (width: Int, height: Int) {
@@ -45,7 +59,8 @@ public enum Plan {
 
     public static func make(width: Int, height: Int, frameRate: Double) -> EncodePlan {
         let size = fit(width: width, height: height)
-        return EncodePlan(width: size.width, height: size.height, frameRate: frameRate > 0 ? frameRate : 25,
-                          averageBitRate: averageBitRate, peakBitRate: nil, peakWindow: 1)
+        let rate = frameRate > 0 ? frameRate : 25
+        return EncodePlan(width: size.width, height: size.height, frameRate: rate,
+                          averageBitRate: averageBitRate(frameRate: rate), peakBitRate: nil, peakWindow: 1)
     }
 }

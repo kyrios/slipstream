@@ -20,6 +20,10 @@ $ff -f lavfi -i "testsrc2=size=180x320:rate=30:duration=1,format=yuv422p10le,$ta
 $ff -f lavfi -i "testsrc2=size=5120x2880:rate=25:duration=0.2,format=yuv422p10le,$tags" \
     -c:v prores_ks -profile:v 0 prores-proxy-5k.mov
 
+# 59.94 fps: the higher rate. Six frames of Proxy keep it small.
+$ff -f lavfi -i "testsrc2=size=320x180:rate=60000/1001:duration=0.1,format=yuv422p10le,$tags" \
+    -c:v prores_ks -profile:v 0 prores-proxy-5994.mov
+
 # A codec the Mac cannot decode, in a container it can open.
 $ff -f lavfi -i "testsrc2=size=320x180:rate=25:duration=1" -c:v ffv1 ffv1.mov
 

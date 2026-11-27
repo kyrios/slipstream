@@ -285,6 +285,7 @@ struct MenuContent: View {
             }
             // One short line per thing; the details in submenus (Thorsten, 2026-10-28).
             if l.jobs.isEmpty || l.pausedUntil != nil { Line(l.state) }
+            if let gate = l.gate { Line(gate) }
             if let problem = l.problem { Line(problem) }
             ForEach(l.jobs) { job in
                 Menu {

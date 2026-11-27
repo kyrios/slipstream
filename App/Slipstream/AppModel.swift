@@ -72,6 +72,12 @@ final class AppModel: ObservableObject {
     @Published private(set) var pausedUntil: Date?
     /// How the pause treats a running job (PauseMode); `.now` when not paused.
     @Published private(set) var pauseMode = PauseMode.now
+    /// The pause gate's word while the setting `gateFile` names a file (PauseGate; docs/worker.md,
+    /// "The pause gate"); nil without the setting or without a gate.
+    @Published private(set) var gate: PauseGate?
+    /// The pause in effect is the gate's, so the gate ends it when it opens. A pause or resume
+    /// from the menu makes it the user's.
+    private var gatePaused = false
     @Published private(set) var tools: [WorkerEvent.Tool] = []
     /// The whisper models the queue wants this Mac to hold, in the order the worker named them.
     @Published private(set) var models: [WorkerEvent.Model] = []
@@ -342,6 +348,7 @@ final class AppModel: ObservableObject {
         pausedUntil = (defaults.object(forKey: "pausedUntil") as? Date).flatMap { $0 > Date() ? $0 : nil }
         pauseMode = defaults.string(forKey: "pauseMode").flatMap(PauseMode.init(rawValue:)) ?? .now
         if let until = pausedUntil { Log.notice(.pause, "pause until \(Self.clock(until)), \(pauseMode.rawValue) (kept from the last run)") }
+        gatePaused = pausedUntil != nil && defaults.bool(forKey: "gatePaused")
         if let day = defaults.object(forKey: "todayDate") as? Date, Calendar.current.isDateInToday(day) {
             finishedToday = defaults.integer(forKey: "todayCount")
         }
@@ -374,6 +381,10 @@ final class AppModel: ObservableObject {
         })
         timers.append(Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.sampleWorkerCPU() }
+        })
+        // Every second, so a closing gate stops the job within one (a gate file is a few bytes).
+        timers.append(Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkGate() }
         })
         startWorker()
     }
@@ -592,6 +603,7 @@ final class AppModel: ObservableObject {
     // MARK: - Pause
 
     func pause(for seconds: TimeInterval, mode: PauseMode) {
+        setGatePaused(false)
         setPause(Date().addingTimeInterval(seconds), mode: mode, source: "menu")
     }
 
@@ -602,7 +614,42 @@ final class AppModel: ObservableObject {
     }
 
     func resume() {
+        setGatePaused(false)
         setPause(nil, mode: .now, source: "menu")
+    }
+
+    // MARK: - The pause gate (docs/worker.md, "The pause gate")
+
+    /// The setting: a file another program on this Mac writes, `open` or `closed`. Off without it.
+    private var gateFile: URL? {
+        defaults.string(forKey: "gateFile").flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
+    }
+
+    private func setGatePaused(_ value: Bool) {
+        gatePaused = value
+        if !previewing { defaults.set(value, forKey: "gatePaused") }
+    }
+
+    private func checkGate() {
+        guard !previewing else { return }
+        let file = gateFile
+        let word = file.flatMap(PauseGate.read)
+        if word != gate {
+            Log.notice(.pause, "gate: \(word.map { $0.isClosed ? "closed" : "open" } ?? "none")" + (word.map { " (\($0.menuLine))" } ?? ""))
+            gate = word
+        }
+        switch PauseGate.decide(gate: word, gatePaused: gatePaused, pausedUntil: pausedUntil, mode: pauseMode, now: Date()) {
+        case .none:
+            break
+        case .pause(let until):
+            setGatePaused(true)
+            setPause(until, mode: .now, source: "gate closed")
+        case .stopRunningJob(let until):
+            setPause(until, mode: .now, source: "gate closed, the running job stops now")
+        case .resume:
+            setGatePaused(false)
+            setPause(nil, mode: .now, source: "gate open")
+        }
     }
 
     /// `source`: who paused, for the log ("menu"); nil for the worker's own word, which is not

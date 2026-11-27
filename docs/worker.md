@@ -71,6 +71,27 @@ Each pause and each limits change also goes to the log file ("slipstream: pause 
 log shows whether one reached the worker. With a worker before v0.2.18 the menu offers only
 "Sofort pausieren", which gives every job back after a minute, as it always did.
 
+**The pause gate** (Slipstream 1.5.0; Thorsten, 2026-11-27: encodes on a laptop only while it is
+plugged in and nobody uses it). Another program on the Mac may decide when Slipstream
+works. It writes a small file, and the setting `gateFile` names it:
+
+```bash
+defaults write io.github.kyrios.slipstream gateFile /path/to/state
+```
+
+Line 1 of the file is `open` or `closed`, line 2 the reasons, words separated by spaces
+(`active`, `on-battery`, `away` and `forced` read as German in the menu), line 3 may say when it
+changed. While it says `closed`, Slipstream pauses "Sofort", as the menu's pause does: a
+suspended job goes on where it stood once the gate opens. The app reads the file every second,
+so a closing gate stops the job within a second or two. It ends only the pause it set itself: a
+pause chosen in the menu stays when the gate opens, and a pause "Nach diesem Auftrag" becomes
+"Sofort" while the gate is closed. Pausing or resuming from the menu takes over from the gate
+until it closes again. The gate's pause lasts 24 hours and is renewed while the gate stays
+closed. No setting, no file, or a file without `open` or `closed` in line 1 means no gate.
+While the setting is on, the menu shows "Sperre: offen" or "Sperre: geschlossen (in Benutzung)",
+and the log file each change ("slipstream: gate: closed …"). `HelperCore/PauseGate.swift` holds
+the rules, `PauseGateTests` their tests.
+
 **The efficiency cores** (encode-queue v0.2.18; Thorsten, 2026-10-28: "Run archive encodes only on
 efficiency cores"). On Apple silicon the CPU submenu offers "Nur Effizienzkerne" beside the core
 counts, and a switch "Archiv-Aufträge nur auf Effizienzkernen"; Settings → Leistung has both.

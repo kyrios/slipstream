@@ -35,6 +35,8 @@ final class MenuMirror: ObservableObject {
         var pausedUntil: String?
         /// The pause lets the running job finish (PauseMode.afterJob).
         var pauseAfterJob = false
+        /// "Sperre: geschlossen (in Benutzung)" while the setting gateFile names a gate (PauseGate).
+        var gate: String?
         /// A queue job runs, so the pause offers "Nach diesem Auftrag".
         var queueJobRunning = false
         /// "CPU für den Encoder: 3 von 12 Kernen", what is in effect (CPUChoice.menuTitle).
@@ -207,6 +209,7 @@ final class MenuMirror: ObservableObject {
         l.points = m.points?.line
         l.pausedUntil = m.pausedUntil.map(time)
         l.pauseAfterJob = m.pausedUntil != nil && m.pauseMode == .afterJob
+        l.gate = m.gate?.menuLine
         l.queueJobRunning = !m.queueJobs.jobs.isEmpty
         l.cpu = CPUChoice.menuTitle(setting: m.threadsSetting > 0 ? m.threadsSetting : AppModel.maxThreads, cores: AppModel.maxThreads,
                                     inEffect: m.workerLimits, efficiencyOnly: m.efficiencySetting == .all)
